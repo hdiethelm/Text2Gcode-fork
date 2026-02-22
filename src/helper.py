@@ -1,0 +1,89 @@
+import sys
+import os
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont, QPainterPath
+
+# Helper function: Convert text to path
+def text_to_path(text, font_family="Arial", font_size=50):
+    font = QFont(font_family, font_size)
+    path = QPainterPath()
+    path.addText(0, 0, font, text)
+    return path
+
+def elem2xy(elem: QPainterPath.Element, scale=0.1, x_offset=0.0, y_offset=0.0):
+    #print(elem.type)
+    #print(elem.x)
+    #print(elem.y)
+    x = elem.x * scale + x_offset
+    y = -elem.y * scale + y_offset  # Invert Y-axis for CNC
+    return [x, y]
+
+# Helper function: Convert path to G-Code
+def path_to_gcode(path: QPainterPath, scale=0.1, safe_z=5.0, cut_z=0.0, feedrate=500,
+                 x_offset=0.0, y_offset=0.0, z_offset=0.0):
+    gcode = [
+        "G21 ; mm mode",
+        "G90 ; absolute positioning"
+    ]
+
+    if path.elementCount() == 0:
+        return "\n".join(gcode)
+
+    pen_down = False
+
+    i = 0
+    while i < path.elementCount():
+        elem = path.elementAt(i)
+
+        [x, y] = elem2xy(elem, scale, x_offset, y_offset)
+        if elem.isMoveTo():
+            if pen_down:
+                gcode.append(f"G0 Z{safe_z + z_offset:.2f}")  # Pen up
+                #print(f"G0 Z{safe_z + z_offset:.2f}")
+                pen_down = False
+            gcode.append(f"G0 X{x:.2f} Y{y:.2f}")  # Position
+            
+            #Next start for spline
+            x0=x
+            y0=y
+
+        elif elem.isLineTo():  # LineTo
+            if not pen_down:
+                gcode.append(f"G1 Z{cut_z + z_offset:.2f} F{feedrate}")  # Pen down
+                pen_down = True
+            gcode.append(f"G1 X{x:.2f} Y{y:.2f} F{feedrate}")
+            
+            #Next start for spline
+            x0=x
+            y0=y
+            
+        elif elem.isCurveTo():  # CurveTo
+            if not pen_down:
+                gcode.append(f"G1 Z{cut_z + z_offset:.2f} F{feedrate}")  # Pen down
+                pen_down = True
+            
+            [x1, y1] = elem2xy(elem, scale, x_offset, y_offset) #c1
+            
+            i=i+1;
+            elem = path.elementAt(i)
+            assert(elem.type == QPainterPath.CurveToDataElement) #CurveTo is always followed by two CurveToDataElement
+            [x2, y2] = elem2xy(elem, scale, x_offset, y_offset) #c2
+            
+            i=i+1;
+            elem = path.elementAt(i)
+            assert(elem.type == QPainterPath.CurveToDataElement) #CurveTo is always followed by two CurveToDataElement
+            [x3, y3] = elem2xy(elem, scale, x_offset, y_offset) #end
+            
+            gcode.append(f"G5 I{x1-x0:.2f} J{y1-y0:.2f} P{x2-x3:.2f} Q{y2-y3:.2f} X{x3:.2f} Y{y3:.2f} F{feedrate}")
+            
+            #End is next start for spline
+            x0=x3
+            y0=y3
+            
+        i=i+1
+
+    if pen_down:
+        gcode.append(f"G0 Z{safe_z + z_offset:.2f}")  # Pen up at the end
+
+    gcode.append("M2 ; Program end")
+    return "\n".join(gcode)

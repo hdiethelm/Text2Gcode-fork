@@ -1,5 +1,6 @@
 import sys
 import os
+from helper import text_to_path, path_to_gcode
 from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QColor, QFont, QPainter, QPainterPath, QPen, QIcon
 from PySide6.QtWidgets import (
@@ -22,54 +23,6 @@ from PySide6.QtWidgets import (
     QToolButton,
     QGridLayout
 )
-
-
-# Helper function: Convert text to path
-def text_to_path(text, font_family="Arial", font_size=50):
-    font = QFont(font_family, font_size)
-    path = QPainterPath()
-    path.addText(0, 0, font, text)
-    return path
-
-
-# Helper function: Convert path to G-Code
-def path_to_gcode(path: QPainterPath, scale=0.1, safe_z=5.0, cut_z=0.0, feedrate=500,
-                 x_offset=0.0, y_offset=0.0, z_offset=0.0):
-    gcode = [
-        "G21 ; mm mode",
-        "G90 ; absolute positioning"
-    ]
-
-    if path.elementCount() == 0:
-        return "\n".join(gcode)
-
-    pen_down = False
-
-    for i in range(path.elementCount()):
-        elem = path.elementAt(i)
-
-        x = elem.x * scale + x_offset
-        y = -elem.y * scale + y_offset  # Invert Y-axis for CNC
-
-        if elem.type == QPainterPath.ElementType.MoveToElement:
-            if pen_down:
-                gcode.append(f"G0 Z{safe_z + z_offset:.2f}")  # Pen up
-                pen_down = False
-            gcode.append(f"G0 X{x:.2f} Y{y:.2f}")  # Position
-
-        else:  # LineTo or CurveTo
-            if not pen_down:
-                gcode.append(f"G1 Z{cut_z + z_offset:.2f} F{feedrate}")  # Pen down
-                pen_down = True
-            gcode.append(f"G1 X{x:.2f} Y{y:.2f} F{feedrate}")
-
-    if pen_down:
-        gcode.append(f"G0 Z{safe_z + z_offset:.2f}")  # Pen up at the end
-
-    gcode.append("M2 ; Program end")
-    return "\n".join(gcode)
-
-
 
 class PreviewWidget(QWidget):
     def __init__(self):

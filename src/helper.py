@@ -20,7 +20,7 @@ def elem2xy(elem: QPainterPath.Element, scale=0.1, x_offset=0.0, y_offset=0.0):
 
 # Helper function: Convert path to G-Code
 def path_to_gcode(path: QPainterPath, scale=0.1, safe_z=5.0, cut_z=0.0, feedrate=500,
-                 x_offset=0.0, y_offset=0.0, z_offset=0.0):
+                 x_offset=0.0, y_offset=0.0, z_offset=0.0, use_g5=True):
     gcode = [
         "G21 ; mm mode",
         "G90 ; absolute positioning"
@@ -72,7 +72,14 @@ def path_to_gcode(path: QPainterPath, scale=0.1, safe_z=5.0, cut_z=0.0, feedrate
             assert(elem.type == QPainterPath.CurveToDataElement) #CurveTo is always followed by two CurveToDataElement
             [x3, y3] = elem2xy(elem, scale, x_offset, y_offset) #end
             
-            gcode.append(f"G5 I{x1-x0:.2f} J{y1-y0:.2f} P{x2-x3:.2f} Q{y2-y3:.2f} X{x3:.2f} Y{y3:.2f} F{feedrate}")
+            if use_g5:
+                gcode.append(f"G5 I{x1-x0:.2f} J{y1-y0:.2f} P{x2-x3:.2f} Q{y2-y3:.2f} X{x3:.2f} Y{y3:.2f} F{feedrate}")
+            else:
+                #Just move trough control points, looks better, even if it is basicaly wrong
+                #ToDo: Do interpolation somehow?
+                gcode.append(f"G1 X{x1:.2f} Y{y1:.2f} F{feedrate}")
+                gcode.append(f"G1 X{x2:.2f} Y{y2:.2f} F{feedrate}")
+                gcode.append(f"G1 X{x3:.2f} Y{y3:.2f} F{feedrate}")
             
             #End is next start for spline
             x0=x3

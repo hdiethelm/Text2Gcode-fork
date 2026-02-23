@@ -115,7 +115,7 @@ class GCodeApp(QMainWindow):
 
         # Text input field
         text_label = QLabel("Enter Text:")
-        self.text_input = QLineEdit()
+        self.text_input = QTextEdit()
         self.text_input.setPlaceholderText("Type your text here...")
         input_layout.addWidget(text_label)
         input_layout.addWidget(self.text_input)
@@ -293,7 +293,7 @@ class GCodeApp(QMainWindow):
         self.preview.set_line_width(self.line_width_spin.value())
 
     def generate_gcode(self):
-        text = self.text_input.text()
+        text = self.text_input.toPlainText()
         if not text.strip():
             self.status_bar.showMessage("Please enter some text", 3000)
             return

@@ -1,19 +1,26 @@
 import sys
 import os
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont, QPainterPath
+from PySide6.QtGui import QFont, QFontMetrics, QPainterPath
 
 # Helper function: Convert text to path
 def text_to_path(text, font_family="Arial", font_size=50):
     font = QFont(font_family, font_size)
+    font_metrics = QFontMetrics(font)
+    line_spacing = font_metrics.lineSpacing();
+    #print(f"Spacing {font_metrics.lineSpacing()}", file=sys.stderr)
     path = QPainterPath()
-    path.addText(0, 0, font, text)
+    text_split=text.splitlines()
+    n_lines=len(text_split);
+    for i in range(n_lines):
+        #print(f"Text {i} {text_nl[i]}", file=sys.stderr)
+        path.addText(0, (i-n_lines+1)*line_spacing, font, text_split[i])
     return path
 
 def elem2xy(elem: QPainterPath.Element, scale=0.1, x_offset=0.0, y_offset=0.0):
-    #print(elem.type)
-    #print(elem.x)
-    #print(elem.y)
+    #print(elem.type, file=sys.stderr)
+    #print(elem.x, file=sys.stderr)
+    #print(elem.y, file=sys.stderr)
     x = elem.x * scale + x_offset
     y = -elem.y * scale + y_offset  # Invert Y-axis for CNC
     return [x, y]

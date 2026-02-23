@@ -29,39 +29,37 @@ def path_to_gcode(path: QPainterPath, scale=0.1, safe_z=5.0, cut_z=0.0, feedrate
     if path.elementCount() == 0:
         return "\n".join(gcode)
 
-    pen_down = False
+    pen_down = True #Stat with pen_down so first move is up to save position
 
     i = 0
     while i < path.elementCount():
         elem = path.elementAt(i)
-
-        [x, y] = elem2xy(elem, scale, x_offset, y_offset)
+        
         if elem.isMoveTo():
             if pen_down:
                 gcode.append(f"G0 Z{safe_z + z_offset:.2f}")  # Pen up
-                #print(f"G0 Z{safe_z + z_offset:.2f}")
                 pen_down = False
-            gcode.append(f"G0 X{x:.2f} Y{y:.2f}")  # Position
-            
-            #Next start for spline
-            x0=x
-            y0=y
+            [x0, y0] = elem2xy(elem, scale, x_offset, y_offset)
+            gcode.append(f"G0 X{x0:.2f} Y{y0:.2f}")  # Position
 
         elif elem.isLineTo():  # LineTo
+            assert(i != 0) #First should be move to
             if not pen_down:
                 gcode.append(f"G1 Z{cut_z + z_offset:.2f} F{feedrate}")  # Pen down
                 pen_down = True
-            gcode.append(f"G1 X{x:.2f} Y{y:.2f} F{feedrate}")
-            
-            #Next start for spline
-            x0=x
-            y0=y
+            [x0, y0] = elem2xy(elem, scale, x_offset, y_offset)
+            gcode.append(f"G1 X{x0:.2f} Y{y0:.2f} F{feedrate}")
             
         elif elem.isCurveTo():  # CurveTo
+            assert(i != 0) #First should be move to
             if not pen_down:
                 gcode.append(f"G1 Z{cut_z + z_offset:.2f} F{feedrate}")  # Pen down
                 pen_down = True
             
+            # See: https://doc.qt.io/qt-6/qpainterpath.html#cubicTo
+            # and https://linuxcnc.org/docs/html/gcode/g-code.html#gcode:g5
+            
+            #x0, y0: Start is given by last element
             [x1, y1] = elem2xy(elem, scale, x_offset, y_offset) #c1
             
             i=i+1;

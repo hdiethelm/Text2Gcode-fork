@@ -349,8 +349,21 @@ class GCodeApp(QMainWindow):
         height_mm = bounds.height() * scale
         self.dimensions_label.setText(f"Dimensions: {width_mm:.2f} x {height_mm:.2f} mm")
 
+        g_prefix = [
+            # Information
+            "; Text = " + "\\n".join(text.splitlines()),
+            f"; Dimensions: {width_mm:.2f} x {height_mm:.2f} mm",
+            # Prefix
+            "G21 ; mm mode",
+            "G90 ; absolute positioning"
+        ]
+        g_postfix = [
+            "M2 ; Program end"
+        ]
+        
         gcode = path_to_gcode(path, scale=scale,
-                              x_offset=x_offset, y_offset=y_offset, z_offset=z_offset, feedrate=feedrate)
+                              x_offset=x_offset, y_offset=y_offset, z_offset=z_offset, feedrate=feedrate,
+                              g_prefix=g_prefix, g_postfix=g_postfix)
         self.gcode_preview.setPlainText(gcode)
 
         self.status_bar.showMessage("G-code generated successfully", 3000)
@@ -369,7 +382,7 @@ class GCodeApp(QMainWindow):
             return
 
         # Default name from LineEdit text
-        default_name = self.text_input.text().strip()
+        default_name = self.text_input.toPlainText().strip().replace("\n", " ")
         if not default_name:
             default_name = "gcode"
 

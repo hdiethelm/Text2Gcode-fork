@@ -27,11 +27,8 @@ def elem2xy(elem: QPainterPath.Element, scale=0.1, x_offset=0.0, y_offset=0.0):
 
 # Helper function: Convert path to G-Code
 def path_to_gcode(path: QPainterPath, scale=0.1, safe_z=5.0, cut_z=0.0, feedrate=500,
-                 x_offset=0.0, y_offset=0.0, z_offset=0.0, use_g5=True):
-    gcode = [
-        "G21 ; mm mode",
-        "G90 ; absolute positioning"
-    ]
+                 x_offset=0.0, y_offset=0.0, z_offset=0.0, use_g5=True, g_prefix=[""], g_postfix=[""]):
+    gcode = g_prefix
 
     if path.elementCount() == 0:
         return "\n".join(gcode)
@@ -97,5 +94,6 @@ def path_to_gcode(path: QPainterPath, scale=0.1, safe_z=5.0, cut_z=0.0, feedrate
     if pen_down:
         gcode.append(f"G0 Z{safe_z + z_offset:.2f}")  # Pen up at the end
 
-    gcode.append("M2 ; Program end")
+    gcode = gcode + g_postfix
+    
     return "\n".join(gcode)

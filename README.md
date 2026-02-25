@@ -25,7 +25,7 @@ Prebuilt single-file binaries (PyInstaller):
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ## Overview
-Text2Gcode converts a single line of text into basic G-code moves (G0/G1) suitable for pen plotters, light engraving, or CNC simulation. It offers font selection, automatic size fitting, adjustable line width preview, and direct export.
+Text2Gcode converts a single line of text into basic G-code moves (G0/G1/G5) suitable for pen plotters, light engraving, or CNC simulation. It offers font selection, automatic size fitting, adjustable line width preview, and direct export.
 
 ## Features
 - System font selection (Qt `QFontComboBox`)
@@ -40,7 +40,7 @@ Text2Gcode converts a single line of text into basic G-code moves (G0/G1) suitab
 ## How It Works
 1. Text is converted to a `QPainterPath`
 2. Path geometry is scaled (default: `0.1` units → mm)
-3. Each path element is emitted as rapid (`G0`) or linear (`G1`) move
+3. Each path element is emitted as rapid (`G0`), linear (`G1`) or cubic spline (`G5`) move
 4. Pen up/down simulated via Z moves (`safe_z` / `cut_z`)
 5. Output ends with `M2`
 
